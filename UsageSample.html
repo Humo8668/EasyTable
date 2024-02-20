@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>EasyTable - usage sample</title>
+	<script type="text/javascript" src="js/table.js"></script>
+	<script type="text/javascript" src="https://code.jquery.com/jquery-3.6.1.min.js"></script>
+	<script type="text/javascript" src="js/bootstrap.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css" />
+	<link rel="stylesheet" type="text/css" href="css/fa/css/all.css" />
+	<link rel="stylesheet" type="text/css" href="css/table.css" />
+</head>
+<body>
+	<script type="text/javascript">
+		var result = {
+			page: 2,
+			size: 30,
+			totalPages: 5,
+			totalElements: 24,
+			sort: [
+				{
+					field: "name",
+					order: "ASC"
+				},
+				{
+					field: "salary",
+					order: "DESC"
+				}
+			],
+			data: [
+				{
+					id: 6,
+					name: "Oliver Hanks",
+					dep_id: 1,
+					dep_name: "Department of law",
+					salary: 2500,
+					hired_date: "10.10.2021"
+				},
+				{
+					id: 7,
+					name: "James Butowski",
+					dep_id: 2,
+					dep_name: "Department of electrical engineering",
+					salary: 1000,
+					hired_date: "10.10.2021"
+				},
+				{
+					id: 8,
+					name: "Karim Benzema",
+					dep_id: 3,
+					dep_name: "Department of sales",
+					salary: 1500,
+					hired_date: "10.10.2021"
+				},
+				{
+					id: 9,
+					name: "Lewis Hamilton",
+					dep_id: 4,
+					dep_name: "Department of insurance",
+					salary: 2000,
+					hired_date: "10.10.2021"
+				},
+				{
+					id: 10,
+					name: "Mila Unis",
+					dep_id: 5,
+					dep_name: "Department of work safety",
+					salary: 1200,
+					hired_date: "10.10.2021"
+				}
+			]
+		}
+
+		function getData(paging, filtering, onDataReceived) {
+			console.log("!****! getData() used !****!")
+			onDataReceived(result);
+		}
+	</script>
+	<div style="margin: auto; width: 1200px;">
+		<EzTable name="Employees" getData="getData()" enableNumeration="true">
+			<column name="id" title="ID" format="number">
+				<filter label="Identification number"></filter>
+			</column>
+			<column name="name" title="Eployee name">
+				<filter operator="_like_"></filter>
+			</column>
+			<column name="dep_id" hidden> </column>
+			<column name="dep_name" title="Department"> </column>
+			<column name="salary" title="Salary" format="number" >
+				<filter operator="range"></filter>
+			</column>
+			<column name="hired_date" title="Date of hiring" format="date"> </column>
+		</EzTable>
+	</div>
+</body>
+</html>

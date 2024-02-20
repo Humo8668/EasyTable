@@ -1,0 +1,13 @@
+.input-group-prepend-dark {
+	background-color: #343a40;
+	color: #fff;
+}
+
+table.table tr.active {
+	background-color: #aad0ff;
+}
+
+table.table th:hover {
+	background-color: #4a4a4a;
+	cursor: pointer;
+}
