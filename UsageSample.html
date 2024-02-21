@@ -4,7 +4,7 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>EasyTable - usage sample</title>
-	<script type="text/javascript" src="js/table.js"></script>
+	<script type="text/javascript" src="js/easytable.js"></script>
 	<script type="text/javascript" src="https://code.jquery.com/jquery-3.6.1.min.js"></script>
 	<script type="text/javascript" src="js/bootstrap.min.js"></script>
 	<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css" />
@@ -73,7 +73,8 @@
 		}
 
 		function getData(paging, filtering, onDataReceived) {
-			console.log("!****! getData() used !****!")
+			console.log("!****! getData() used !****!");
+			console.log(paging, filtering);
 			onDataReceived(result);
 		}
 	</script>
@@ -83,9 +84,13 @@
 				<filter label="Identification number"></filter>
 			</column>
 			<column name="name" title="Eployee name">
-				<filter operator="_like_"></filter>
+				<filter operator="like"></filter>
 			</column>
-			<column name="dep_id" hidden> </column>
+			<column name="dep_id" hidden> 
+				<filter operator="option" 
+					options="[{name: 'Department of law', value: 1},{name: 'Department of electrical engineering', value: 2},{name: 'Department of sales', value: 3},{name: 'Department of insurance', value: 4},{name: 'Department of work safety', value: 5}]"
+					label="Department"></filter>
+			</column>
 			<column name="dep_name" title="Department"> </column>
 			<column name="salary" title="Salary" format="number" >
 				<filter operator="range"></filter>

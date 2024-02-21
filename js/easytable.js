@@ -27,7 +27,11 @@ function isString(obj) {
 } 
 
 function isEmptyString(obj) {
-  return (typeof obj === 'string' &&  (obj == null || obj.length == 0));
+  return (typeof obj === 'string' &&  obj.length == 0 ||  obj == null);
+}
+
+function nvl(value, defaultValue) {
+  return (isDef(value)&&!isNull(value))?value:defaultValue;
 }
 
 function getFormData(form) {
@@ -185,7 +189,7 @@ function Table(tableDefinition) {
   };
   
   this.paging = this.DEFAULT_PAGING;
-  this.filter = {};
+  this.filter = [];
 
   getTableManager().registerTable(this.tableDef.name, this);
 
@@ -196,7 +200,7 @@ function Table(tableDefinition) {
     else
       this.tableDef.getData = getDataFunc;
   } catch(e) {
-    throw "Couldn't get <onPaging> function";
+    throw "Couldn't get <getData> function";
   }
 
   this.getModalName = function() {
@@ -316,9 +320,22 @@ function Table(tableDefinition) {
     this.tableBuilder.refreshOrderIcons();
   }
 
-  this.applyFilter = function (filterObj) {
-    console.log("onFilter ", filterObj);
-    this.filter = filterObj;
+  this.applyFilter = function (filterData) {
+    console.log("onFilter ", filterData);
+    this.filter = [];
+    for(var columnName in filterData) {
+      if(isEmptyString(filterData[columnName])) continue;
+      if(Array.isArray(filterData[columnName]) && !isDef(filterData[columnName].find((x)=>!isEmptyString(x)))) {
+        continue;
+      }
+      var column = this.tableDef.columns.find((x) => x.name==columnName);
+      if(!isDef(column)) {
+        continue;
+      }
+      var operator = nvl(column.filter.operator, "=");
+      this.filter.push({column: columnName, value: filterData[columnName], operator: operator});
+    }
+    console.log(this.filter);
     this.refreshData();
   }
 
@@ -336,7 +353,8 @@ function TableDefinitionParser() {
     var filter = {
       DOM: filterTagDOM,
       label: filterTagDOM.getAttribute("label"),
-      operator: filterTagDOM.getAttribute("operator")
+      operator: filterTagDOM.getAttribute("operator"),
+      options: filterTagDOM.getAttribute("options")
     };
     return filter;
   }
@@ -547,9 +565,11 @@ function TableBuilder(parentDOM, table) {
     }
     
     var inputGroup = createDOM("div", {class: "col-8 input-group"});
-    
-
-    if(filterOperator.indexOf(OPERATORS.LIKE) > 0) {
+    if(!isDef(filterOperator) || isEmptyString(filterOperator)) filterOperator = OPERATORS.EQUAL;
+    if(!isDef(inputFormat) || isEmptyString(inputFormat)) inputFormat = "text";
+    if(!isDef(filterValue)) filterValue = "";
+    filterOperator = filterOperator.toLowerCase();
+    if(filterOperator.indexOf(OPERATORS.LIKE) >= 0) {
       var inputGroupPrepend = createDOM("div", {class: "input-group-prepend"});
       var inputGroupPrependText = createDOM("div", {class: "input-group-text"}, OPERATORS.LIKE);
       var inputFilter = createDOM("input", {
@@ -557,15 +577,16 @@ function TableBuilder(parentDOM, table) {
         id: columnName,
         class: "form-control",
         type: 'text',
-        value: ((isDef(filterValue))?filterValue:"")
+        value: filterValue
       });
       inputGroupPrepend.appendChild(inputGroupPrependText);
       inputGroup.appendChild(inputGroupPrepend);
       inputGroup.appendChild(inputFilter);
-    } else if(filterOperator.indexOf(OPERATORS.RANGE) > 0) {
+    } else if(filterOperator.indexOf(OPERATORS.RANGE) >= 0) {
       if(inputFormat.indexOf('number') < 0 && inputFormat.indexOf('date') < 0) {
         throw 'Incopatible input format for filter <' + filterOperator + '>';
       }
+      filterOperator = OPERATORS.RANGE;
       var firstPrepend = createDOM("div", {class: "input-group-prepend"});
       var firstPrependText = createDOM("div", {class: "input-group-text"}, 'between');
       var secondPrepend = createDOM("div", {class: "input-group-prepend"});
@@ -575,14 +596,14 @@ function TableBuilder(parentDOM, table) {
         id: columnName,
         class: "form-control",
         type: inputFormat,
-        value: ((isDef(filterValue[0]))?filterValue[0]:"")
+        value: ((isDef(filterValue)&&isDef(filterValue[0]))?filterValue[0]:"")
       });
       var toInput = createDOM("input", {
         name: columnName,
         id: columnName,
         class: "form-control",
         type: inputFormat,
-        value: ((isDef(filterValue[1]))?filterValue[1]:"")
+        value: ((isDef(filterValue)&&isDef(filterValue[1]))?filterValue[1]:"")
       });
       
       firstPrepend.appendChild(firstPrependText);
@@ -592,9 +613,9 @@ function TableBuilder(parentDOM, table) {
       inputGroup.appendChild(fromInput);
       inputGroup.appendChild(secondPrepend);
       inputGroup.appendChild(toInput);
-    } else if(filterOperator.indexOf(OPERATORS.EQUAL) > 0 
-          || filterOperator.indexOf(OPERATORS.GREATER) > 0 
-          || filterOperator.indexOf(OPERATORS.LESS) > 0) {
+    } else if(filterOperator == OPERATORS.EQUAL 
+          || filterOperator == OPERATORS.GREATER 
+          || filterOperator == OPERATORS.LESS) {
       if(inputFormat.indexOf('number') < 0) {
         throw 'Incopatible input format for filter';
       }
@@ -603,15 +624,35 @@ function TableBuilder(parentDOM, table) {
       var inputFilter = createDOM("input", {
         name: columnName,
         id: columnName,
-        class: "form-control",
-        type: 'number',
-        value: ((isDef(filterValue))?filterValue:"")
+        class: "form-control"
       });
       inputGroupPrepend.appendChild(inputGroupPrependText);
       inputGroup.appendChild(inputGroupPrepend);
       inputGroup.appendChild(inputFilter);
+    } else if(filterOperator.indexOf(OPERATORS.OPTION) >= 0) {
+      filterOperator = OPERATORS.OPTION;
+      var inputGroupPrepend = createDOM("div", {class: "input-group-prepend"});
+      var inputGroupPrependText = createDOM("div", {class: "input-group-text"}, OPERATORS.OPTION);
+      var selectDOM = createDOM("select", {
+        name: columnName,
+        id: columnName,
+        class: "form-control"
+      });
+      optionObjectsArray.push({name: "** Select options", value: ""});
+      for(var i = 0; i < optionObjectsArray.length; i++) {
+        var optionAttributes = {
+          value: optionObjectsArray[i].value
+        };
+        if(optionObjectsArray[i].value == filterValue) {
+          optionAttributes.selected = true;
+        }
+        var optionDOM = createDOM("option", optionAttributes, optionObjectsArray[i].name);
+        selectDOM.appendChild(optionDOM);
+      }
+      inputGroupPrepend.appendChild(inputGroupPrependText);
+      inputGroup.appendChild(inputGroupPrepend);
+      inputGroup.appendChild(selectDOM);
     }
-
     
     return inputGroup;
   }
@@ -647,21 +688,8 @@ function TableBuilder(parentDOM, table) {
         return;
       var filterDef = column.filter;
       var inputRow = createDOM("div", {class: "form-group row"});
-      var label = createDOM("label", {class: "col-4 col-form-label"}, (filterDef.title != null)?filterDef.title:column.title);
-      var inputGroup = buildFilterInputGroup(column.name, column.format, filterDef.operator, this.table.filter[column.name]);
-      // var inputGroup = createDOM("div", {class: "col-8 input-group"});
-      // var inputGroupPrepend = createDOM("div", {class: "input-group-prepend"});
-      // var inputGroupPrependText = createDOM("div", {class: "input-group-text"}, filterDef.operator);
-      // var inputFilter = createDOM("input", {
-      //   name: column.name,
-      //   id: column.name,
-      //   class: "form-control",
-      //   type: column.format,
-      //   value: (isDef(this.table.filter[column.name]))?this.table.filter[column.name]:""
-      // });
-      // inputGroupPrepend.appendChild(inputGroupPrependText);
-      // inputGroup.appendChild(inputGroupPrepend);
-      // inputGroup.appendChild(inputFilter);
+      var label = createDOM("label", {class: "col-4 col-form-label"}, (filterDef.label != null)?filterDef.label:column.title);
+      var inputGroup = buildFilterInputGroup(column.name, column.format, nvl(filterDef.operator, ""), this.table.filter[column.name], eval(filterDef.options));
       inputRow.appendChild(label);
       inputRow.appendChild(inputGroup);
       modalFilterFormDOM.appendChild(inputRow);
