@@ -174,6 +174,13 @@ function equalsIgnoreCase(str1, str2) {
   return (new String(str1)).trim().toLowerCase() == (new String(str2)).trim().toLowerCase();
 }
 
+function parseFunction(funcStr) {
+  if(typeof funcStr !== 'function')
+    return eval(funcStr.substr(0, funcStr.indexOf('(')));
+  else
+    return funcStr;
+}
+
 
 function Table(tableDefinition) {
   this.tableDef = tableDefinition;
@@ -194,13 +201,11 @@ function Table(tableDefinition) {
   getTableManager().registerTable(this.tableDef.name, this);
 
   try {
-    var getDataFunc = this.tableDef.getData;
-    if(typeof getDataFunc !== 'function')
-      this.tableDef.getData = eval(getDataFunc.substr(0, getDataFunc.indexOf('(')));
-    else
-      this.tableDef.getData = getDataFunc;
+    this.tableDef.getData = parseFunction(this.tableDef.getData);
+    this.tableDef.onRowSelect = parseFunction(this.tableDef.onRowSelect);
+    this.tableDef.onRowDblClick = parseFunction(this.tableDef.onRowDblClick);
   } catch(e) {
-    throw "Couldn't get <getData> function";
+    throw "Couldn't parse function name: " + e;
   }
 
   this.getModalName = function() {
@@ -263,7 +268,7 @@ function Table(tableDefinition) {
 
 
   this.onRowSelected = function(rowDOM) {
-    console.log("onRowSelected", rowDOM);
+    //console.log("onRowSelected", rowDOM);
     if(rowDOM == this.selectedRowDOM)
       return;
 
@@ -274,6 +279,11 @@ function Table(tableDefinition) {
       this.selectedRowDOM.classList.remove("active");
     }
     this.selectedRowDOM = rowDOM;
+    this.tableDef.onRowSelect(this.data[rowDOM.getAttribute("data-index")]);
+  }
+
+  this.onRowDblClick = function(rowDOM) {
+    this.tableDef.onRowDblClick(this.data[rowDOM.getAttribute("data-index")]);
   }
 
 
@@ -382,6 +392,8 @@ function TableDefinitionParser() {
       name: tableTagDOM.getAttribute("name"),
       getData: tableTagDOM.getAttribute("getData"),
       enableNum: tableTagDOM.getAttribute("enableNumeration") === 'true',
+      onRowSelect: tableTagDOM.getAttribute("onRowSelect"),
+      onRowDblClick: tableTagDOM.getAttribute("onRowDblClick"),
       columns: []
     };
     tableTagDOM.childNodes.forEach(function(childDOM) {
@@ -743,9 +755,10 @@ function TableBuilder(parentDOM, table) {
         tableBody.appendChild(tr);
       } else {
         for(var i = 0; i < this.table.data.length; i++) {
-          var tableRow = createDOM("tr");
+          var tableRow = createDOM("tr", {"data-index": i});
           tableRow.table = this.table;
           tableRow.addEventListener("click", function(e) { this.table.onRowSelected(e.currentTarget); });
+          tableRow.addEventListener("dblclick", function(e) { this.table.onRowDblClick(e.currentTarget); });
           if(this.table.tableDef.enableNum) {
             var tableCell = createDOM("td", {
               name: "numeration"

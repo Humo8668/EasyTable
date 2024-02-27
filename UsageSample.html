@@ -77,9 +77,17 @@
 			console.log(paging, filtering);
 			onDataReceived(result);
 		}
+
+		function onRowSelected(rowObj) {
+			console.log("Row selected: ", JSON.stringify(rowObj));
+		}
+
+		function onRowDblClick(rowObj) {
+			console.log("Row double-clicked: ", JSON.stringify(rowObj));
+		}
 	</script>
 	<div style="margin: auto; width: 1200px;">
-		<EzTable name="Employees" getData="getData()" enableNumeration="true">
+		<EzTable name="Employees" getData="getData()" enableNumeration="true" onRowSelect="onRowSelected()" onRowDblClick="onRowDblClick()">
 			<column name="id" title="ID" format="number">
 				<filter label="Identification number"></filter>
 			</column>
