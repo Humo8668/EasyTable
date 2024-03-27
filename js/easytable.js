@@ -295,14 +295,7 @@ function Table(tableDefinition) {
   this.getSelectedRowData = function() {
     if(typeof this.selectedRowDOM === 'undefined' || this.selectedRowDOM == null)
       return {};
-    
-    var TDs = this.selectedRowDOM.getElementsByTagName("td");
-    var row = {};
-    for(var i = 0; i < TDs.length; i++) {
-      var key = TDs[i].getAttribute("name");
-      if(typeof key !== 'undefined' && key != null) 
-        row[key] = TDs[i].innerText;
-    }
+    var row = this.data[this.selectedRowDOM.getAttribute("data-index")];
     return row;
   }
 
